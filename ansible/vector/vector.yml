@@ -19,9 +19,9 @@ transforms:
   aggregate_execve_events:
     type: aggregate
     inputs: [extract_execve_events]
-    interval_ms: 500
-      #group_by: ["process.command"]
-      #max_events: 100
+    interval_ms: 500  # 5
+    group_by: ["process.command"]
+    max_events: 100
 
 # Отфильтровать события, которые не относятся к сгруппированным событиям
 filters:
