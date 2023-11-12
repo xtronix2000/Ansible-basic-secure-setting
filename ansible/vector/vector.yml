@@ -1,0 +1,44 @@
+# vector.yaml
+
+# Настройка источника данных для чтения логов из файла /var/log/audit/audit.log
+sources:
+  audit_log:
+    include:
+      - "/var/log/audit/audit.log"
+    type: file
+
+# Определение событий, связанных с системным вызовом EXECVE
+transforms:
+  extract_execve_events:
+    type: grok_parser
+    inputs: [audit_log]
+    patterns:
+      - "%{SYSLOGTIMESTAMP:timestamp} %{DATA:hostname} kernel: type=EXECVE msg=audit%(audit_message)s"
+
+# Группировка событий в одно единое событие
+  aggregate_execve_events:
+    type: aggregate
+    inputs: [extract_execve_events]
+    interval_ms: 500
+      #group_by: ["process.command"]
+      #max_events: 100
+
+# Отфильтровать события, которые не относятся к сгруппированным событиям
+filters:
+  exclude_unwanted_events:
+    type: field_filter
+    inputs: [aggregate_execve_events]
+    condition: |
+      not:
+        equals:
+          field: "field_name"
+          value: "unwanted_value"
+
+# Запись событий в новый файл
+sinks:
+  output_sink: 
+    type: file
+    inputs: [exclude_unwanted_events]
+    path: "/root/vector.log"
+    encoding:
+      codec: "json"

@@ -1,0 +1,19 @@
+## /etc/audit/rules.d/audit.rules
+
+# Отслеживать изменения в /etc/passwd
+-w /etc/passwd -p wa -k passwd_changes
+
+# Отслеживать успешные и неуспешные попытки входа
+-a exit,always -F arch=b64 -S execve -k exec_calls
+
+# Отслеживать изменения в /etc/ssh/sshd_config
+-w /etc/ssh/sshd_config -p wa -k sshd_config_changes
+
+# Отслеживать чтение /etc/shadow
+-w /etc/shadow -p r -k shadow_access
+
+# Отслеживать доступ к /var/log/secure
+-w /var/log/secure -p wa -k login_attempts
+
+# Отслеживать изменения в /etc/
+-w /etc/ -p wa -k etc_changes
