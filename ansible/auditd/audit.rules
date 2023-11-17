@@ -1,4 +1,23 @@
-## /etc/audit/rules.d/audit.rules
+# Удалить текущие правила
+-D
+
+## Попытки прочитать информацию из записей аудита
+-w /var/log/audit/ -p wra -k auditlog
+-w /var/audit/ -p wra -k auditlog
+
+# Аудит конфигураций auditd
+-w /etc/audit/ -p wa -k auditconfig
+
+# Отслеживание использования инструментами управления аудитом
+-w /sbin/auditctl -p x -k audittools
+-w /sbin/auditd -p x -k audittools
+-w /sbin/aureport -p x -k audittools
+-w /sbin/ausearch -p x -k audittools
+-w /sbin/autrace -p x -k audittools
+-w /sbin/augenrules -p x -k audittools
+
+# Успешные IPv4-соединения
+-a always,exit -F arch=b64 -S connect -F a2=16 -F success=1 -F key=network_connect_4
 
 # Отслеживать изменения в /etc/passwd
 -w /etc/passwd -p wa -k passwd_changes
@@ -17,3 +36,4 @@
 
 # Отслеживать изменения в /etc/
 -w /etc/ -p wa -k etc_changes
+
