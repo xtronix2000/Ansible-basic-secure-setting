@@ -1,22 +1,38 @@
 - name: Basic security 
-  hosts: all
+  hosts: test
   become: yes  
+
+  vars:
+    ansible_check_mode: True
+    base_dir: /home/sexmaior/ansible
+    users:
+      - user1
+      - user2
+      - user3
+    packages:
+      - fail2ban
+      - ufw
+      - auditd
+    sources:
+      pwquality_config: "{{ base_dir }}/pam/pwquality.conf"
+      auditd_config: "{{ base_dir }}/auditd/auditd.conf"
+      auditd_rules: "{{ base_dir }}/auditd/audit.rules"
+      vector_config: "{{ base_dir }}/vector/vector.yml"
 
   tasks:
   # 0. Установка необходимых пакетов безопасности
+    - name: Проверка доступности
+      ping:
+
     - name: Установка необходимых пакетов безопасности
       apt:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - fail2ban
-        - ufw
-        - auditd
+        pkg: "{{ packages }}"
+        state: present 
 
   # 1. Настройка pwquality
     - name: 1.1 Копирование pwquality.conf
       copy:
-        src: /home/kali/Desktop/ansible/pam/pwquality.conf
+        src: "{{ sources.pwquality_config }}"
         dest: /etc/security/pwquality.conf
         mode: '0644'
         backup: yes
@@ -56,35 +72,23 @@
 
     - name: 3.4 Добавление пользователей в группу wheel
       user:
-        name: "{{ item }}"
+        name: "{{ users }}"
         groups: wheel
         append: yes  # добавить пользователя к существующим группам
-      with_items:
-        - user1
-        - user2
-        - user3
 
    # 4. Ограничение списка пользователей для sudo
     - name: 4.1 Добавить пользователей в группу sudo
       user:
-        name: "{{ item }}"
+        name: "{{ users }}"
         groups: sudo
         append: yes
-      with_items:
-        - user1
-        - user2
-        - user3
 
     # 5. Установка прав доступа к домашним каталогам
     - name: 5.1 Установка прав доступа к домашним каталогам
       file:
-        path: "/home/{{ item }}"
+        path: "/home/{{ users }}"
         mode: "0700"
         state: directory
-      with_items:
-        - user1
-        - user2
-        - user3
     
     # 6. Настройка UFW для разрешения доступа только по SSH
     - name: 6.1 Включение UFW
@@ -108,12 +112,12 @@
     
     - name: 7.2 Копирование конфигурации auditd.conf
       copy:
-        src: /home/kali/Desktop/ansible/auditd/auditd.conf
+        src: "{{ sources.auditd_config }}"
         dest: /etc/audit/auditd.conf
 
     - name: 7.3 Копирование правил аудита
       copy:
-        src: /home/kali/Desktop/ansible/auditd/audit.rules
+        src: "{{ sources.auditd_rules }}"
         dest: /etc/audit/rules.d/audit.rules
       notify: Перезапуск auditd
 
@@ -145,7 +149,7 @@
         - /etc/cron.hourly/
         - /etc/cron.daily/
         - /etc/cron.weekly/
-        - /etc/cron.monthl
+        - /etc/cron.monthly
   
     # 10. Установка корректных прав доступа к стартовым скриптам системы, к каждому файлу в директориях /etc/rc#.d, а также к файлам .service, присутствующим в системе.
     - name: 10.1 Поиск файлов .service в /
@@ -177,7 +181,7 @@
       with_items: "{{ rc_files.results | map(attribute='files') | flatten | selectattr('is_file') | list }}"
         # rc_files.results - результат выполнения предыдущей задачи
         # map(attribute='files') - из каждого элемента переданного списка (rc_files.results) извлекается атрибут files
-        # flatten схлопывает список списков в один список
+        # flatten - схлопывает список списков в один список
         # selectattr('is_file') - получить из общего списка файлов только обычные файлы is_file- True
 
     # 11. Vector
@@ -191,10 +195,10 @@
 
     - name: 11.3 Копирование конфигурации Vector
       copy:
-        src: /home/kali/Desktop/ansible/vector/vector.yml
+        src: "{{ sources.vector_config }}"
         dest: /etc/vector.yml
       notify: Перезапуск Vector
-    
+   
     - name: 11.4 Запуск Vector
       command: "vector --config /etc/vector.yml" 
        
